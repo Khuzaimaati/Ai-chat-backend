@@ -1,3 +1,4 @@
+// api/chat.js
 import fetch from "node-fetch";
 
 // In-memory user limits (reset daily)
@@ -25,13 +26,14 @@ export default async function handler(req, res) {
 
     // Free user limit check
     if (!userLimits[userId].premium && userLimits[userId].count >= FREE_LIMIT) {
-      return res.status(403).json({ 
-        error: "Daily limit reached", 
-        ads: "Show ads here for free user" 
+      return res.status(403).json({
+        error: "Daily limit reached",
+        ads: "Watch Ad to Unlock 5 messages",
+        remainingFree: 0,
       });
     }
 
-    // Increment message count
+    // Increment message count if not premium
     if (!userLimits[userId].premium) userLimits[userId].count += 1;
 
     // Hugging Face API token from environment variable
@@ -40,37 +42,43 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Server token not set" });
     }
 
-    const model = premium
-  ? "mistralai/Mistral-7B-Instruct-v0.2"
-  : "microsoft/DialoGPT-medium";
-    
+    // Select model based on premium status
+    const model = userLimits[userId].premium
+      ? "mistralai/Mistral-7B-Instruct-v0.2"
+      : "microsoft/DialoGPT-medium";
+
+    // Call Hugging Face inference API
     const hfResponse = await fetch(
-      "https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium",
+      `https://api-inference.huggingface.co/models/${model}`,
       {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${hfToken}`,
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ inputs: message })
+        body: JSON.stringify({ inputs: message }),
       }
     );
 
     const data = await hfResponse.json();
 
     // Extract reply
-    const reply = data[0]?.generated_text || "Sorry, no response";
+    const reply = data?.generated_text || data?.[0]?.generated_text || "Sorry, no response";
 
-    // Send response
+    // Send final response
     res.status(200).json({
       reply,
-      remainingFree: FREE_LIMIT - (userLimits[userId].count || 0),
+      remainingFree: userLimits[userId].premium
+        ? null
+        : FREE_LIMIT - (userLimits[userId].count || 0),
       premium: userLimits[userId].premium,
-      ads: !userLimits[userId].premium ? "Show ad here" : null
+      ads:
+        !userLimits[userId].premium && userLimits[userId].count >= FREE_LIMIT
+          ? "Watch Ad to Unlock 5 messages"
+          : null,
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
-          }
+}
