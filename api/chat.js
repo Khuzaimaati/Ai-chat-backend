@@ -1,11 +1,11 @@
 export default async function handler(req, res) {
 
-  // ✅ CORS (VERY IMPORTANT)
+  // ✅ ALWAYS set CORS first
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "*");
 
-  // ✅ Handle preflight
+  // ✅ Handle preflight request
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -22,43 +22,36 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing userId or message" });
     }
 
-    // ✅ Free limit system
-    const FREE_LIMIT = 20;
-    global.userLimits = global.userLimits || {};
-
-    const today = new Date().toDateString();
-
-    if (!global.userLimits[userId] || global.userLimits[userId].date !== today) {
-      global.userLimits[userId] = {
-        count: 0,
-        date: today,
-        premium: !!premium
-      };
-    }
-
-    // update premium status
-    global.userLimits[userId].premium = !!premium;
-
-    // check limit
-    if (!global.userLimits[userId].premium &&
-        global.userLimits[userId].count >= FREE_LIMIT) {
-
-      return res.status(403).json({
-        error: "Daily limit reached",
-        ads: "Show ad here"
-      });
-    }
-
-    // increment usage
-    if (!premium) {
-      global.userLimits[userId].count += 1;
-    }
-
-    // ✅ Hugging Face API
+    // ✅ Hugging Face
     const hfToken = process.env.HF_TOKEN;
 
-    const model = premium
-      ? "mistralai/Mistral-7B-Instruct-v0.2"
-      : "HuggingFaceH4/zephyr-7b-beta";
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${hfToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ inputs: message })
+      }
+    );
 
-    const response
+    const data = await response.json();
+
+    let reply = "No response";
+
+    if (Array.isArray(data)) {
+      reply = data[0]?.generated_text || reply;
+    } else if (data.generated_text) {
+      reply = data.generated_text;
+    } else if (data.error) {
+      reply = "Error: " + data.error;
+    }
+
+    return res.status(200).json({ reply });
+
+  } catch (err) {
+    return res.status(500).json({ error: "Server error" });
+  }
+}
