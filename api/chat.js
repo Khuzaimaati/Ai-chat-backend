@@ -27,26 +27,30 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-         model: "mistralai/Mistral-7B-Instruct-v0.2" 
+          model: "mistralai/Mistral-7B-Instruct-v0.2",
           messages: [{ role: "user", content: message }],
-          max_tokens: 200
         }),
       }
     );
 
     const data = await hfRes.json();
 
-    console.log("HF FULL RESPONSE:", JSON.stringify(data));
+    // 🔥 ADD THIS (VERY IMPORTANT)
+    if (!hfRes.ok) {
+      console.error("HF ERROR:", data);
+      return res.status(500).json({
+        error: "HF API Error",
+        details: data,
+      });
+    }
 
-    // 🔥 SMART PARSE (handles all cases)
-    let reply = "No response from AI";
+    let reply = data?.choices?.[0]?.message?.content;
 
-    if (data?.choices?.[0]?.message?.content) {
-      reply = data.choices[0].message.content;
-    } else if (data?.generated_text) {
-      reply = data.generated_text;
-    } else if (Array.isArray(data) && data[0]?.generated_text) {
-      reply = data[0].generated_text;
+    if (!reply) {
+      return res.status(200).json({
+        reply: "AI replied empty (model issue)",
+        raw: data
+      });
     }
 
     return res.status(200).json({ reply });
@@ -59,4 +63,4 @@ export default async function handler(req, res) {
       details: error.message,
     });
   }
-}
+                                }
