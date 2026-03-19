@@ -1,4 +1,5 @@
 export default async function handler(req, res) {
+  // ✅ CORS (VERY IMPORTANT)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -15,9 +16,10 @@ export default async function handler(req, res) {
     const { message } = req.body;
 
     if (!message) {
-      return res.status(400).json({ error: "No message provided" });
+      return res.status(400).json({ error: "Message is required" });
     }
 
+    // 🔥 HuggingFace API call (LATEST)
     const hfRes = await fetch(
       "https://router.huggingface.co/v1/chat/completions",
       {
@@ -27,40 +29,46 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "mistralai/Mistral-7B-Instruct-v0.2",
-          messages: [{ role: "user", content: message }],
+          model: "meta-llama/Llama-3-8b-instruct",
+          messages: [
+            { role: "system", content: "You are a helpful AI assistant." },
+            { role: "user", content: message }
+          ],
+          max_tokens: 200
         }),
       }
     );
 
     const data = await hfRes.json();
 
-    // 🔥 ADD THIS (VERY IMPORTANT)
+    // ❗ Agar HF error aaye
     if (!hfRes.ok) {
       console.error("HF ERROR:", data);
       return res.status(500).json({
-        error: "HF API Error",
-        details: data,
+        error: "HuggingFace API error",
+        details: data
       });
     }
 
-    let reply = data?.choices?.[0]?.message?.content;
+    // ✅ Proper reply extract
+    let reply =
+      data?.choices?.[0]?.message?.content ||
+      data?.generated_text ||
+      (Array.isArray(data) ? data[0]?.generated_text : null);
 
+    // ❗ fallback (safe)
     if (!reply) {
-      return res.status(200).json({
-        reply: "AI replied empty (model issue)",
-        raw: data
-      });
+      reply = "AI is not responding properly. Please try again.";
     }
 
     return res.status(200).json({ reply });
 
   } catch (error) {
-    console.error("SERVER ERROR:", error);
+    console.error("SERVER CRASH:", error);
 
     return res.status(500).json({
       error: "Server error",
-      details: error.message,
+      details: error.message
     });
   }
-                                }
+}
