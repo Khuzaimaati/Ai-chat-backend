@@ -29,7 +29,7 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "meta-llama/Llama-3-8b-instruct",
+          model: "mistralai/Mistral-7B-Instruct-v0.2"
           messages: [
             { role: "system", content: "You are a helpful AI assistant." },
             { role: "user", content: message }
