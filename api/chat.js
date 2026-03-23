@@ -1,25 +1,15 @@
 export default async function handler(req, res) {
-  // ✅ CORS (VERY IMPORTANT)
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Only POST allowed" });
   }
 
   try {
-    const { message } = req.body;
+    const { message } = req.body || {};
 
     if (!message) {
-      return res.status(400).json({ error: "Message is required" });
+      return res.status(400).json({ error: "Message missing" });
     }
 
-    // 🔥 HuggingFace API call (LATEST)
     const hfRes = await fetch(
       "https://router.huggingface.co/v1/chat/completions",
       {
@@ -29,46 +19,31 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "mistralai/Mistral-7B-Instruct-v0.2"
-          messages: [
-            { role: "system", content: "You are a helpful AI assistant." },
-            { role: "user", content: message }
-          ],
-          max_tokens: 200
+          model: "mistralai/Mistral-7B-Instruct-v0.2",
+          messages: [{ role: "user", content: message }],
         }),
       }
     );
 
     const data = await hfRes.json();
 
-    // ❗ Agar HF error aaye
-    if (!hfRes.ok) {
-      console.error("HF ERROR:", data);
-      return res.status(500).json({
-        error: "HuggingFace API error",
-        details: data
-      });
-    }
+    console.log("HF FULL RESPONSE:", JSON.stringify(data));
 
-    // ✅ Proper reply extract
-    let reply =
-      data?.choices?.[0]?.message?.content ||
-      data?.generated_text ||
-      (Array.isArray(data) ? data[0]?.generated_text : null);
+    // SAFE extraction (no crash)
+    let reply = "No response from AI";
 
-    // ❗ fallback (safe)
-    if (!reply) {
-      reply = "AI is not responding properly. Please try again.";
+    if (data && data.choices && data.choices[0]) {
+      reply = data.choices[0].message?.content || reply;
     }
 
     return res.status(200).json({ reply });
 
-  } catch (error) {
-    console.error("SERVER CRASH:", error);
+  } catch (err) {
+    console.error("ERROR:", err);
 
     return res.status(500).json({
-      error: "Server error",
-      details: error.message
+      error: "Server crashed",
+      details: err.message,
     });
   }
 }
