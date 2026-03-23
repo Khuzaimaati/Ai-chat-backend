@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     }
 
     const response = await fetch(
-      "https://api-inference.huggingface.co/models/google/flan-t5-large",
+      "https://router.huggingface.co/v1/chat/completions",
       {
         method: "POST",
         headers: {
@@ -19,7 +19,14 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          inputs: message,
+          // 🔥 MOST COMPATIBLE MODEL
+          model: "openchat/openchat-3.5-0106",
+          messages: [
+            {
+              role: "user",
+              content: message,
+            },
+          ],
         }),
       }
     );
@@ -30,10 +37,11 @@ export default async function handler(req, res) {
 
     let reply = "No response from AI";
 
-    if (Array.isArray(data) && data[0]?.generated_text) {
-      reply = data[0].generated_text;
+    // ✅ safest extraction
+    if (data?.choices?.[0]?.message?.content) {
+      reply = data.choices[0].message.content;
     } else if (data?.error) {
-      reply = "HF Error: " + data.error;
+      reply = "HF Error: " + data.error.message;
     }
 
     return res.status(200).json({ reply });
@@ -46,4 +54,4 @@ export default async function handler(req, res) {
       details: err.message,
     });
   }
-}
+        }
