@@ -32,9 +32,18 @@ export default async function handler(req, res) {
     // SAFE extraction (no crash)
     let reply = "No response from AI";
 
-    if (data && data.choices && data.choices[0]) {
-      reply = data.choices[0].message?.content || reply;
-    }
+// New format (chat)
+if (data?.choices?.[0]?.message?.content) {
+  reply = data.choices[0].message.content;
+}
+// Old format (some HF models)
+else if (data?.generated_text) {
+  reply = data.generated_text;
+}
+// Array format
+else if (Array.isArray(data) && data[0]?.generated_text) {
+  reply = data[0].generated_text;
+}
 
     return res.status(200).json({ reply });
 
