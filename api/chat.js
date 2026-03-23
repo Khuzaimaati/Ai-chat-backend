@@ -11,16 +11,15 @@ export default async function handler(req, res) {
     }
 
     const response = await fetch(
-      "https://router.huggingface.co/v1/chat/completions",
+      "https://openrouter.ai/api/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.HF_TOKEN}`,
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // 🔥 MOST COMPATIBLE MODEL
-          model: "openchat/openchat-3.5-0106",
+          model: "openai/gpt-3.5-turbo",
           messages: [
             {
               role: "user",
@@ -33,25 +32,22 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    console.log("HF RESPONSE:", JSON.stringify(data));
+    console.log("RESPONSE:", JSON.stringify(data));
 
-    let reply = "No response from AI";
+    let reply = "No response";
 
-    // ✅ safest extraction
     if (data?.choices?.[0]?.message?.content) {
       reply = data.choices[0].message.content;
-    } else if (data?.error) {
-      reply = "HF Error: " + data.error.message;
     }
 
     return res.status(200).json({ reply });
 
   } catch (err) {
-    console.error("SERVER ERROR:", err);
+    console.error(err);
 
     return res.status(500).json({
       error: "Server crashed",
       details: err.message,
     });
   }
-        }
+}
