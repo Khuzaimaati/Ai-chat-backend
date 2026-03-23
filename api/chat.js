@@ -10,6 +10,9 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Message missing" });
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10 sec timeout
+
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
       {
@@ -19,7 +22,7 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "mistralai/mistral-7b-instruct:free"
+          model: "mistralai/mistral-7b-instruct:free",
           messages: [
             {
               role: "user",
@@ -27,29 +30,31 @@ export default async function handler(req, res) {
             },
           ],
         }),
+        signal: controller.signal,
       }
     );
+
+    clearTimeout(timeout);
 
     const data = await response.json();
 
     console.log("API RESPONSE:", JSON.stringify(data));
 
-    let reply = "No response";
+    let reply = "AI busy, try again";
 
     if (data?.choices?.[0]?.message?.content) {
       reply = data.choices[0].message.content;
     } else if (data?.error) {
       reply = "Error: " + data.error.message;
-    } else {
-      reply = JSON.stringify(data);
     }
 
     return res.status(200).json({ reply });
 
   } catch (err) {
-    return res.status(500).json({
-      error: "Server crashed",
-      details: err.message,
+    console.error("ERROR:", err.message);
+
+    return res.status(200).json({
+      reply: "Server busy, try again later",
     });
   }
 }
