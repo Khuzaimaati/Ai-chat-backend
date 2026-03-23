@@ -32,19 +32,21 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    console.log("RESPONSE:", JSON.stringify(data));
+    console.log("API RESPONSE:", JSON.stringify(data));
 
     let reply = "No response";
 
     if (data?.choices?.[0]?.message?.content) {
       reply = data.choices[0].message.content;
+    } else if (data?.error) {
+      reply = "Error: " + data.error.message;
+    } else {
+      reply = JSON.stringify(data);
     }
 
     return res.status(200).json({ reply });
 
   } catch (err) {
-    console.error(err);
-
     return res.status(500).json({
       error: "Server crashed",
       details: err.message,
