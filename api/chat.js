@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // Only POST allow
+  // Only POST allowed
   if (req.method !== "POST") {
     return res.status(200).json({
       success: false,
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Call GROQ API
+    // GROQ API call
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -32,14 +32,15 @@ export default async function handler(req, res) {
           messages: [
             {
               role: "system",
-              content: "Reply in maximum 2 short sentences only."
+              content:
+                "Detect the user's language and reply in the same language. Keep answers very short (maximum 2 sentences). Do not switch language."
             },
             {
               role: "user",
               content: message
             }
           ],
-          max_tokens: 30
+          max_tokens: 60
         })
       }
     );
@@ -52,14 +53,13 @@ export default async function handler(req, res) {
       reply = data.choices[0].message.content;
     }
 
-    // Final response (IMPORTANT for app)
     return res.status(200).json({
       success: true,
       message: reply
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Server Error:", error);
 
     return res.status(200).json({
       success: false,
