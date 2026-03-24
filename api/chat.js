@@ -32,18 +32,32 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
+    console.log("FULL RESPONSE:", JSON.stringify(data)); // 🔥 important
+
     let reply = "No response";
 
-    if (data?.choices?.[0]?.message?.content) {
-      reply = data.choices[0].message.content;
+    // ✅ main case
+    if (data && data.choices && data.choices.length > 0) {
+      reply = data.choices[0].message?.content || "Empty reply";
+    }
+
+    // ❗ error case
+    if (data.error) {
+      reply = "Error: " + data.error.message;
+    }
+
+    // 🔥 fallback (debug)
+    if (reply === "No response") {
+      reply = JSON.stringify(data);
     }
 
     return res.status(200).json({ reply });
 
   } catch (err) {
-    return res.status(500).json({
-      error: "Server crashed",
-      details: err.message,
+    console.error(err);
+
+    return res.status(200).json({
+      reply: "Server busy, try again",
     });
   }
 }
