@@ -19,7 +19,7 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama3-8b-8192",
+          model: "llama-3.1-8b-instant", // ✅ updated
           messages: [
             {
               role: "user",
@@ -32,30 +32,17 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    console.log("FULL RESPONSE:", JSON.stringify(data)); // 🔥 important
-
     let reply = "No response";
 
-    // ✅ main case
-    if (data && data.choices && data.choices.length > 0) {
-      reply = data.choices[0].message?.content || "Empty reply";
-    }
-
-    // ❗ error case
-    if (data.error) {
+    if (data?.choices?.[0]?.message?.content) {
+      reply = data.choices[0].message.content;
+    } else if (data?.error) {
       reply = "Error: " + data.error.message;
-    }
-
-    // 🔥 fallback (debug)
-    if (reply === "No response") {
-      reply = JSON.stringify(data);
     }
 
     return res.status(200).json({ reply });
 
   } catch (err) {
-    console.error(err);
-
     return res.status(200).json({
       reply: "Server busy, try again",
     });
