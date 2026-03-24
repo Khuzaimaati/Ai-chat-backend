@@ -1,13 +1,19 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Only POST allowed" });
+    return res.status(200).json({
+      success: false,
+      message: "Only POST allowed"
+    });
   }
 
   try {
     const { message } = req.body || {};
 
     if (!message) {
-      return res.status(400).json({ error: "Message missing" });
+      return res.status(200).json({
+        success: false,
+        message: "Message missing"
+      });
     }
 
     const response = await fetch(
@@ -19,12 +25,9 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "llama-3.1-8b-instant", // ✅ updated
+          model: "llama-3.1-8b-instant",
           messages: [
-            {
-              role: "user",
-              content: message,
-            },
+            { role: "user", content: message }
           ],
         }),
       }
@@ -36,15 +39,17 @@ export default async function handler(req, res) {
 
     if (data?.choices?.[0]?.message?.content) {
       reply = data.choices[0].message.content;
-    } else if (data?.error) {
-      reply = "Error: " + data.error.message;
     }
 
-    return res.status(200).json({ reply });
+    return res.status(200).json({
+      success: true,
+      message: reply,   // ✅ IMPORTANT CHANGE
+    });
 
   } catch (err) {
     return res.status(200).json({
-      reply: "Server busy, try again",
+      success: false,
+      message: "Server error, try again"
     });
   }
 }
