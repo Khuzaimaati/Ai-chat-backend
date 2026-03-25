@@ -1,5 +1,15 @@
 export default async function handler(req, res) {
-  // Only POST allowed
+  // ✅ CORS HEADERS (IMPORTANT)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // ✅ Handle preflight request
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  // ❌ Only POST allowed
   if (req.method !== "POST") {
     return res.status(200).json({
       success: false,
@@ -10,7 +20,6 @@ export default async function handler(req, res) {
   try {
     const { message } = req.body || {};
 
-    // Check message
     if (!message) {
       return res.status(200).json({
         success: false,
@@ -18,7 +27,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // GROQ API call
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -33,25 +41,22 @@ export default async function handler(req, res) {
             {
               role: "system",
               content:
-                "Detect the user's language and reply in the same language. Keep answers very short (maximum 2 sentences). Do not switch language."
+                "Detect the user's language and reply in the same language. Keep answers very short (maximum 2 sentences)."
             },
             {
               role: "user",
               content: message
             }
           ],
-          max_tokens: 30
+          max_tokens: 60
         })
       }
     );
 
     const data = await response.json();
 
-    let reply = "No response";
-
-    if (data?.choices?.[0]?.message?.content) {
-      reply = data.choices[0].message.content;
-    }
+    const reply =
+      data?.choices?.[0]?.message?.content || "No response";
 
     return res.status(200).json({
       success: true,
