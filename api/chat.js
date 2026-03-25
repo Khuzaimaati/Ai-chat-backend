@@ -1,10 +1,10 @@
 export default async function handler(req, res) {
-  // ✅ CORS HEADERS (IMPORTANT)
+  // ✅ CORS FIX
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  // ✅ Handle preflight request
+  // ✅ Preflight request handle
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -27,6 +27,7 @@ export default async function handler(req, res) {
       });
     }
 
+    // 🔥 GROQ API CALL
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -40,8 +41,13 @@ export default async function handler(req, res) {
           messages: [
             {
               role: "system",
-              content:
-                "Detect the user's language and reply in the same language. Keep answers very short (maximum 2 sentences)."
+              content: `
+You MUST follow these rules strictly:
+- Reply in the EXACT same language as the user.
+- NEVER change language.
+- Do not translate.
+- Keep reply very short (max 2 sentences).
+`
             },
             {
               role: "user",
