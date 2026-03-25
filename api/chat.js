@@ -1,15 +1,13 @@
 export default async function handler(req, res) {
-  // ✅ CORS FIX
+  // ✅ CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  // ✅ Preflight request handle
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  // ❌ Only POST allowed
   if (req.method !== "POST") {
     return res.status(200).json({
       success: false,
@@ -27,7 +25,47 @@ export default async function handler(req, res) {
       });
     }
 
-    // 🔥 GROQ API CALL
+    const msg = message.trim().toLowerCase();
+
+    // 🔥 SIMPLE LANGUAGE DETECTION
+    let detectedLanguage = "Unknown";
+
+    if (msg.includes("assalam") || msg.includes("kia") || msg.includes("hai")) {
+      detectedLanguage = "Urdu";
+    } else if (msg.includes("bonjour")) {
+      detectedLanguage = "French";
+    } else if (msg.includes("halo") || msg.includes("apa")) {
+      detectedLanguage = "Malay";
+    } else if (msg.includes("hello") || msg.includes("hi")) {
+      detectedLanguage = "English";
+    }
+
+    // 🔥 FIXED GREETING RESPONSES
+    if (msg === "hello" || msg === "hi") {
+      return res.status(200).json({
+        success: true,
+        language: "English",
+        message: "Hello!"
+      });
+    }
+
+    if (msg === "assalamualaikum" || msg === "assalamu alaikum") {
+      return res.status(200).json({
+        success: true,
+        language: "Urdu",
+        message: "Walikum assalam"
+      });
+    }
+
+    if (msg === "bonjour") {
+      return res.status(200).json({
+        success: true,
+        language: "French",
+        message: "Bonjour!"
+      });
+    }
+
+    // 🔥 AI CALL (only if not greeting)
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -42,11 +80,8 @@ export default async function handler(req, res) {
             {
               role: "system",
               content: `
-You MUST follow these rules strictly:
-- Reply in the EXACT same language as the user.
-- NEVER change language.
-- Do not translate.
-- Keep reply very short (max 2 sentences).
+Reply in the EXACT same language as the user.
+Keep answer very short (max 2 sentences).
 `
             },
             {
@@ -54,7 +89,7 @@ You MUST follow these rules strictly:
               content: message
             }
           ],
-          max_tokens: 60
+          max_tokens: 30
         })
       }
     );
@@ -66,6 +101,7 @@ You MUST follow these rules strictly:
 
     return res.status(200).json({
       success: true,
+      language: detectedLanguage,
       message: reply
     });
 
