@@ -81,7 +81,7 @@ export default async function handler(req, res) {
               role: "system",
               content: `
 Reply in the EXACT same language as the user.
-Keep answer very short (max 2 sentences).
+Keep answer very short (max 10 sentences).
 `
             },
             {
@@ -89,7 +89,7 @@ Keep answer very short (max 2 sentences).
               content: message
             }
           ],
-          max_tokens: 30
+          max_tokens: 100
         })
       }
     );
