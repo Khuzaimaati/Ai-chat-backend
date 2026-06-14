@@ -8,12 +8,21 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  if (req.method !== "POST") {
-    return res.status(200).json({
-      success: false,
-      message: "Only POST allowed"
-    });
-  }
+  if (req.method === "GET") {
+  return res.status(200).json({
+    success: true,
+    message: "Backend is running 🚀"
+  });
+}
+
+if (req.method === "POST") {
+  // chatbot code yahan
+}
+
+return res.status(405).json({
+  success: false,
+  message: "Method not allowed"
+  })
 
   try {
     const { message } = req.body || {};
