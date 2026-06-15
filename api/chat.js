@@ -129,10 +129,10 @@ console.log("GROQ RESPONSE:", JSON.stringify(data));
 
   } catch (error) {
     console.error("Server Error:", error);
+return res.status(200).json({
+  success: false,
+  message: error.message
 
-    return res.status(500).json({
-      success: false,
-      message: "Server error, try again"
     });
   }
 }
