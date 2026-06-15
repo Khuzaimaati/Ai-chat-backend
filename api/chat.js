@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  // ✅ CORS
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // GET (health check)
+  // GET
   if (req.method === "GET") {
     return res.status(200).json({
       success: true,
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // Only POST allowed for chat
+  // Only POST allowed
   if (req.method !== "POST") {
     return res.status(405).json({
       success: false,
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const { message } = req.body || {};
 
     if (!message) {
-      return res.status(200).json({
+      return res.status(400).json({
         success: false,
         message: "Message missing"
       });
@@ -37,34 +37,10 @@ export default async function handler(req, res) {
 
     const msg = message.trim().toLowerCase();
 
-    // Language Detection
-    let detectedLanguage = "Unknown";
-
-    if (
-      msg.includes("assalam") ||
-      msg.includes("kia") ||
-      msg.includes("hai")
-    ) {
-      detectedLanguage = "Urdu";
-    } else if (msg.includes("bonjour")) {
-      detectedLanguage = "French";
-    } else if (
-      msg.includes("halo") ||
-      msg.includes("apa")
-    ) {
-      detectedLanguage = "Malay";
-    } else if (
-      msg.includes("hello") ||
-      msg.includes("hi")
-    ) {
-      detectedLanguage = "English";
-    }
-
-    // Fixed Greetings
+    // Greetings
     if (msg === "hello" || msg === "hi") {
       return res.status(200).json({
         success: true,
-        language: "English",
         message: "Hello!"
       });
     }
@@ -75,26 +51,17 @@ export default async function handler(req, res) {
     ) {
       return res.status(200).json({
         success: true,
-        language: "Urdu",
         message: "Walikum assalam"
       });
     }
 
-    if (msg === "bonjour") {
-      return res.status(200).json({
-        success: true,
-        language: "French",
-        message: "Bonjour!"
-      });
-    }
-
-    // AI Call
+    // Groq AI
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -103,36 +70,35 @@ export default async function handler(req, res) {
             {
               role: "system",
               content:
-                "Reply in the EXACT same language as the user. Keep answers short and helpful."
+                "Reply in the same language as the user. Keep answers short and helpful."
             },
             {
               role: "user",
               content: message
             }
           ],
-          max_tokens: 100
+          max_tokens: 200
         })
       }
     );
-    
-const data = await response.json();
 
-console.log("GROQ RESPONSE:", JSON.stringify(data));
+    const data = await response.json();
 
-    
+    const reply =
+      data?.choices?.[0]?.message?.content ||
+      "No response";
 
     return res.status(200).json({
       success: true,
-      language: detectedLanguage,
       message: reply
     });
 
   } catch (error) {
-    console.error("Server Error:", error);
-return res.status(200).json({
-  success: false,
-  message: error.message
+    console.error(error);
 
+    return res.status(500).json({
+      success: false,
+      message: error.message
     });
   }
 }
