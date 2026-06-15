@@ -67,7 +67,7 @@ export default async function handler(req, res) {
       ? "llama-3.3-70b-versatile"
       : "llama-3.1-8b-instant";
 
-    const maxTokens = premium ? 1000 : 200;
+    const maxTokens = premium ? 500 : 200;
 
     // AI Call
     const response = await fetch(
