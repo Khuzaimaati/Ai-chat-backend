@@ -64,8 +64,8 @@ export default async function handler(req, res) {
 
     // Premium Settings
     const model = premium
-      ? "llama-3.3-70b-versatile"
-      : "llama-3.1-8b-instant";
+   ?  "Llama 3 70B"
+   : "llama-3.1-8b-instant";
 
     const maxTokens = premium ? 500 : 200;
 
